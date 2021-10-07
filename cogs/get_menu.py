@@ -139,6 +139,6 @@ class GetMenu(Cog):
                     await ctx.reply(embed=embed)
                     break
             else:
-                ctx.reply('You spelt it wrong, you donkey.')
+                await ctx.reply('You spelt it wrong, you donkey.')
         except:
             await ctx.reply(f'"{dorm}" isn\'t serving "{meal}" today.')
