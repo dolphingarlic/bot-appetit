@@ -68,7 +68,7 @@ class BotInfo(Cog):
             value='About Bot Appetit',
             inline=True
         ).add_field(
-            name=f'`{self.prefix}invite` or `{self.prefix}topgg`',
+            name=f'`{self.prefix}invite`',
             value='Bot invite link',
             inline=True
         ).add_field(
@@ -87,7 +87,7 @@ class BotInfo(Cog):
 
         await ctx.send(embed=embed)
 
-    @command(aliases=['topgg'])
+    @command()
     async def invite(self, ctx):
         """
         Sends a bot invite link
