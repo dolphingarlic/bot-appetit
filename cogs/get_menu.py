@@ -53,9 +53,9 @@ MEAL_TIMES: 'dict[str, dict[str, str]]' = {
 
 DORM_ALIASES: 'dict[str, re.Pattern]' = {
     'BAKER': re.compile(r'baker( house)?', re.IGNORECASE),
-    'MASEEH': re.compile(r'(the howard dining hall at)?mas+e+h', re.IGNORECASE),
+    'MASEEH': re.compile(r'(the howard dining hall at )?mas+e+h', re.IGNORECASE),
     'MCCORMICK': re.compile(r'mc+ormick', re.IGNORECASE),
-    'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)', re.IGNORECASE),
+    'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)|(wg)', re.IGNORECASE),
     'NEXT': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
     'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)', re.IGNORECASE),
 }
