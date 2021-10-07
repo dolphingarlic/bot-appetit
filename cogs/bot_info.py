@@ -58,8 +58,7 @@ class BotInfo(Cog):
 
         embed = discord.Embed(
             title='Help',
-            description='Bot Appetit sends menus from MIT\'s dorm dining halls',
-            colour=0x41c03f
+            description='Bot Appetit sends menus from MIT\'s dorm dining halls'
         ).add_field(
             name=f'`{self.prefix}menu <dorm> <meal>`',
             value='Sends today\'s menu specified by `<dorm>` and `<meal>`',

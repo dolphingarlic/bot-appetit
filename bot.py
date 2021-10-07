@@ -17,7 +17,6 @@ from cogs.get_menu import GetMenu
 
 async def main():
     """Sets up the bot with environment variables"""
-
     logging.basicConfig(level=logging.INFO)
 
     prefix = os.environ.get('BOT_PREFIX', 'b!')
