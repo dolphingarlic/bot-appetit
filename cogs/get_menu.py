@@ -57,7 +57,7 @@ DORM_ALIASES: 'dict[str, re.Pattern]' = {
     'MCCORMICK': re.compile(r'mc+ormick', re.IGNORECASE),
     'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)|(wg)', re.IGNORECASE),
     'NEXT': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
-    'SIMMONS': re.compile(r'(simmons)|(sponge)', re.IGNORECASE),
+    'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)', re.IGNORECASE),
 }
 
 
