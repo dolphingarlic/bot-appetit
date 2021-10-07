@@ -137,7 +137,7 @@ class GetMenu(Cog):
                             inline=True
                         )
                     await ctx.reply(embed=embed)
-                    return
+                    break
             else:
                 ctx.reply('You spelt it wrong, you donkey.')
         except:
