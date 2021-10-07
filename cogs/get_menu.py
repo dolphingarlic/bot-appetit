@@ -1,4 +1,5 @@
 from datetime import date
+import re
 
 import aiohttp
 from discord import Embed
@@ -48,6 +49,15 @@ MEAL_TIMES: 'dict[str, dict[str, str]]' = {
         'DINNER': '5:00 PM - 8:00 PM',
         'LATE NIGHT': '10:00 PM - 1:00 AM'
     },
+}
+
+DORM_ALIASES: 'dict[str, re.Pattern]' = {
+    'BAKER': re.compile(r'baker( house)?', re.IGNORECASE),
+    'MASEEH': re.compile(r'(the howard dining hall at)?mas+e+h', re.IGNORECASE),
+    'MCCORMICK': re.compile(r'mc+ormick', re.IGNORECASE),
+    'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)', re.IGNORECASE),
+    'NEXT': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
+    'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)', re.IGNORECASE),
 }
 
 
@@ -113,17 +123,22 @@ class GetMenu(Cog):
     async def menu(self, ctx: Context, dorm: str, meal: str):
         """Gets the menu for a specific dorm and meal."""
         try:
-            menu = (await self.get_all_menus(meal))[dorm.upper()]
-            embed = Embed(
-                title=f'{meal} specials at {dorm}'.upper(),
-                description=f'{MEAL_TIMES[dorm.upper()][meal.upper()]}, {date.today()}'
-            )
-            for i in menu:
-                embed.add_field(
-                    name=i.name,
-                    value=' '.join(i.tags) + '‎ ',  # Invisible space character
-                    inline=True
-                )
-            await ctx.reply(embed=embed)
+            for d in DORM_ALIASES:
+                if DORM_ALIASES[d].match(dorm):
+                    menu = (await self.get_all_menus(meal))[d]
+                    embed = Embed(
+                        title=f'{meal} specials at {d}'.upper(),
+                        description=f'{MEAL_TIMES[d][meal.upper()]}, {date.today()}'
+                    )
+                    for i in menu:
+                        embed.add_field(
+                            name=i.name,
+                            value=' '.join(i.tags) + '‎ ',  # Invisible space character
+                            inline=True
+                        )
+                    await ctx.reply(embed=embed)
+                    return
+            else:
+                ctx.reply('You spelt it wrong, you donkey.')
         except:
             await ctx.reply(f'"{dorm}" isn\'t serving "{meal}" today.')
