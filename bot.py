@@ -11,6 +11,7 @@ import os
 import aiohttp
 from discord import Activity, ActivityType
 from discord.ext.commands import Bot
+from cogs.bot_info import BotInfo
 
 from cogs.get_menu import GetMenu
 
@@ -29,6 +30,7 @@ async def main():
 
     async with aiohttp.ClientSession() as session:
         bot.add_cog(GetMenu(bot, session))
+        bot.add_cog(BotInfo(bot))
         await bot.start(os.environ['DISCORD_TOKEN'])
 
 if __name__ == '__main__':

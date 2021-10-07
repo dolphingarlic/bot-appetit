@@ -1,3 +1,7 @@
+"""
+Cog that gets the menu from the internet
+"""
+
 from datetime import date
 import re
 
@@ -53,11 +57,11 @@ MEAL_TIMES: 'dict[str, dict[str, str]]' = {
 
 DORM_ALIASES: 'dict[str, re.Pattern]' = {
     'BAKER': re.compile(r'baker( house)?', re.IGNORECASE),
-    'MASEEH': re.compile(r'.*mas+e+h.*', re.IGNORECASE),
-    'MCCORMICK': re.compile(r'mc+ormick', re.IGNORECASE),
+    'MASEEH': re.compile(r'(howard)|(.*mas+e+h.*)', re.IGNORECASE),
+    'MCCORMICK': re.compile(r'mc+(ormick)?', re.IGNORECASE),
     'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)|(wg)', re.IGNORECASE),
     'NEXT': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
-    'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)', re.IGNORECASE),
+    'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)|(best( house)?)', re.IGNORECASE),
 }
 
 
