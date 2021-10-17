@@ -32,26 +32,31 @@ MEAL_TIMES: 'dict[str, dict[str, str]]' = {
     },
     'MASEEH': {
         'BREAKFAST': '8:00 AM - 11:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
         'LUNCH': '11:00 AM - 3:00 PM',
         'DINNER': '5:00 PM - 9:00 PM',
-        'LATE NIGHT': '10:00 PM - 1:00 AM'
+        'LATE-NIGHT': '10:00 PM - 1:00 AM'
     },
     'MCCORMICK': {
         'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
         'DINNER': '5:00 PM - 8:00 PM',
     },
     'BAKER': {
         'BREAKFAST': '7:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
         'DINNER': '5:30 PM - 8:30 PM',
     },
     'NEXT': {
         'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
         'DINNER': '5:30 PM - 8:30 PM',
     },
     'SIMMONS': {
         'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
         'DINNER': '5:00 PM - 8:00 PM',
-        'LATE NIGHT': '10:00 PM - 1:00 AM'
+        'LATE-NIGHT': '10:00 PM - 1:00 AM'
     },
 }
 
@@ -101,7 +106,7 @@ class GetMenu(Cog):
 
         async with self.session.get('https://mit.cafebonappetit.com/') as resp:
             soup = BeautifulSoup(await resp.text(), 'html.parser')
-            raw_menu = soup.find('section', {'id': meal}).find('div', {'class': 'c-tab__content--active'}).find(
+            raw_menu = soup.find('section', {'id': meal.replace(' ', '-')}).find('div', {'class': 'c-tab__content--active'}).find(
                 'div', {'class': 'c-tab__content-inner site-panel__daypart-tab-content-inner'}).children
 
             current_dorm = None
@@ -132,7 +137,7 @@ class GetMenu(Cog):
                     menu = (await self.get_all_menus(meal))[d]
                     embed = Embed(
                         title=f'{meal} specials at {d}'.upper(),
-                        description=f'{MEAL_TIMES[d][meal.upper()]}, {date.today()}'
+                        description=f'{MEAL_TIMES[d][meal.replace(" ", "-").upper()]}, {date.today()}'
                     )
                     for i in menu:
                         embed.add_field(
