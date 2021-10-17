@@ -2,7 +2,7 @@
 Cog that gets the menu from the internet
 """
 
-from datetime import date
+from datetime import date, timedelta
 import re
 
 import aiohttp
@@ -99,12 +99,18 @@ class GetMenu(Cog):
         self.bot = bot
         self.session = session
 
-    async def get_all_menus(self, meal: str) -> 'dict[str, MenuItem]':
+    async def get_all_menus(self, meal: str, day: str) -> 'dict[str, MenuItem]':
         """Fetches all the menus for the requested meal"""
         meal = meal.lower()
         dorm_menus = {}
 
-        async with self.session.get('https://mit.cafebonappetit.com/') as resp:
+        if day == 'today':
+            day = str(date.today())
+        elif day == 'tomorrow':
+            day = str(date.today() + timedelta(days=1))
+        day = day.replace('/', '-')
+
+        async with self.session.get(f'https://mit.cafebonappetit.com/cafe/{day}') as resp:
             soup = BeautifulSoup(await resp.text(), 'html.parser')
             raw_menu = soup.find('section', {'id': meal.replace(' ', '-')}).find('div', {'class': 'c-tab__content--active'}).find(
                 'div', {'class': 'c-tab__content-inner site-panel__daypart-tab-content-inner'}).children
@@ -129,15 +135,15 @@ class GetMenu(Cog):
         return dorm_menus
 
     @command(aliases=['serving'])
-    async def menu(self, ctx: Context, dorm: str, meal: str):
+    async def menu(self, ctx: Context, dorm: str, meal: str, day: str = 'today'):
         """Gets the menu for a specific dorm and meal."""
         try:
             for d in DORM_ALIASES:
                 if DORM_ALIASES[d].match(dorm):
-                    menu = (await self.get_all_menus(meal))[d]
+                    menu = (await self.get_all_menus(meal, day))[d]
                     embed = Embed(
                         title=f'{meal} specials at {d}'.upper(),
-                        description=f'{MEAL_TIMES[d][meal.replace(" ", "-").upper()]}, {date.today()}'
+                        description=f'{MEAL_TIMES[d][meal.replace(" ", "-").upper()]}, {day.upper()}'
                     )
                     for i in menu:
                         embed.add_field(
@@ -150,4 +156,6 @@ class GetMenu(Cog):
             else:
                 await ctx.reply('You spelt it wrong, you donkey.')
         except:
-            await ctx.reply(f'"{dorm}" isn\'t serving "{meal}" today.')
+            if day != 'today' and day != 'tomorrow':
+                day = f'on {day}'
+            await ctx.reply(f'"{dorm}" isn\'t serving "{meal}" {day}.')
