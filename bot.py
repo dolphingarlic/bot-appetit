@@ -22,7 +22,7 @@ async def main():
     prefix = os.environ.get('BOT_PREFIX', 'b!')
 
     bot = Bot(
-        command_prefix=prefix,
+        command_prefix=[prefix, prefix.upper()],
         help_command=None,
         activity=Activity(type=ActivityType.playing, name=f'with flavours | `{prefix}help` for help')
     )
