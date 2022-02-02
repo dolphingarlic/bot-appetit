@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 "discord.py" = "*"
+beautifulsoup4 = "*"
 aiohttp = "*"
 
 [dev-packages]

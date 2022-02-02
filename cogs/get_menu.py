@@ -6,6 +6,7 @@ import re
 import aiohttp
 from discord import Embed
 from discord.ext.commands import Bot, Cog, command, Context
+from bs4 import BeautifulSoup
 
 TAG_EMOJIS: 'dict[str, str]' = {
     'farm to fork': '<:farmtofork:892967496641028156>',
@@ -33,6 +34,29 @@ DORM_ALIASES: 'dict[str, re.Pattern]' = {
 }
 
 
+# For New Vassar only
+class MenuItem:
+    """A menu item"""
+
+    def __init__(self, name: str, tags: 'list[str]'):
+        self.name = name
+        self.tags = tags
+
+    @staticmethod
+    def parse(html_element: BeautifulSoup):
+        """Parses a menu item from a chunk of HTML"""
+        name = html_element.find(
+            'button', {'class': 'site-panel__daypart-item-title'}).get_text().strip()
+
+        try:
+            tags = list(map(lambda x: TAG_EMOJIS[x['alt'].split(':')[0]], html_element.find(
+                'span', {'class': 'site-panel__daypart-item-cor-icons'}).find_all('img')))
+        except:
+            tags = []
+
+        return MenuItem(name, tags)
+
+
 class GetMenu(Cog):
     """Cog for getting and sending menus"""
 
@@ -40,13 +64,52 @@ class GetMenu(Cog):
         self.bot = bot
         self.session = session
 
+    # New Vassar being the special child again...
+    async def get_all_menus(self, meal: str) -> 'list[MenuItem]':
+        """Fetches all the menus for the requested meal"""
+        meal = meal.lower()
+        menu = []
+
+        async with self.session.get(f'https://mit.cafebonappetit.com/cafe') as resp:
+            soup = BeautifulSoup(await resp.text(), 'html.parser')
+            raw_menu = soup.find('section', {'id': meal.replace(' ', '-')}).find('div', {'class': 'c-tab__content--active'}).find(
+                'div', {'class': 'c-tab__content-inner site-panel__daypart-tab-content-inner'}).children
+
+            current_dorm = None
+            for i in raw_menu:
+                if i.name == 'div' and i['class'] == ['station-title-inline-block']:
+                    current_dorm = i.find(
+                        'h3', {'class': 'site-panel__daypart-station-title'}).get_text().strip().upper()
+                    if current_dorm != 'NEW VASSAR':
+                        continue;
+                    current_dorm = current_dorm.title()
+                    for j in i.find_all('div', {'class': 'site-panel__daypart-item'}):
+                        assert current_dorm is not None
+                        menu.append(MenuItem.parse(j))
+                elif i.name == 'div':
+                    assert current_dorm is not None
+                    menu.append(MenuItem.parse(i))
+
+        return menu
+
     @command(aliases=['serving'])
     async def menu(self, ctx: Context, dorm: str, meal: str):
         """Gets the menu for a specific dorm and meal."""
         for d in DORM_ALIASES:
             if DORM_ALIASES[d].match(dorm):
                 if d == 'New Vassar':
-                    await ctx.reply('New Vassar doesn\'t exist. Sucks to suck /s')
+                    menu = await self.get_all_menus(meal)
+                    embed = Embed(
+                        title=f'{meal} at New Vassar'.upper(),
+                        description='Who knows when? Certainly not me'
+                    )
+                    for i in menu:
+                        embed.add_field(
+                            name=i.name.title(),
+                            value=' '.join(i.tags) + '‎ ',  # Invisible space character
+                            inline=True
+                        )
+                    await ctx.reply(embed=embed)
                     return
 
                 async with self.session.get('https://m.mit.edu/apis/dining/venues/house') as resp:
