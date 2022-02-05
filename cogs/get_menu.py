@@ -49,7 +49,7 @@ class MenuItem:
             'button', {'class': 'site-panel__daypart-item-title'}).get_text().strip()
 
         try:
-            tags = list(map(lambda x: TAG_EMOJIS[x['alt'].split(':')[0]], html_element.find(
+            tags = list(map(lambda x: TAG_EMOJIS[x['alt'].split(':')[0].lower()], html_element.find(
                 'span', {'class': 'site-panel__daypart-item-cor-icons'}).find_all('img')))
         except:
             tags = []
