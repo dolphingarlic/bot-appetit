@@ -1,6 +1,8 @@
 """
 Cog that gets the menu from the internet
 """
+
+from datetime import date, timedelta
 import re
 
 import aiohttp
@@ -9,32 +11,65 @@ from discord.ext.commands import Bot, Cog, command, Context
 from bs4 import BeautifulSoup
 
 TAG_EMOJIS: 'dict[str, str]' = {
-    'farm to fork': '<:farmtofork:892967496641028156>',
-    'made without gluten': '<:glutenfree:892967496846573618>',
-    'halal': '<:halal:892967496632635403>',
-    'humane': '<:humane:892967496754278400>',
-    'in balance': '<:inbalance:892967496313888850>',
-    'kosher': '<:kosher:892967496662024202>',
-    'locally crafted': '<:locallycrafted:892967496712335410>',
-    'raw/undercooked': '<:rawundercooked:892967496729124864>',
-    'raw': '<:rawundercooked:892967496729124864>',
-    'undercooked': '<:rawundercooked:892967496729124864>',
-    'seafood watch': '<:seafoodwatch:892967496745881620>',
-    'vegan': '<:vegan:892967496502636605>',
-    'vegetarian': '<:vegaterian:892967496771047485>'
+    'Farm to Fork': '<:farmtofork:892967496641028156>',
+    'Made without Gluten-Containing Ingredients': '<:glutenfree:892967496846573618>',
+    'Halal': '<:halal:892967496632635403>',
+    'Humane': '<:humane:892967496754278400>',
+    'In Balance': '<:inbalance:892967496313888850>',
+    'Kosher': '<:kosher:892967496662024202>',
+    'Locally Crafted': '<:locallycrafted:892967496712335410>',
+    'Raw/Undercooked': '<:rawundercooked:892967496729124864>',
+    'Seafood Watch': '<:seafoodwatch:892967496745881620>',
+    'Vegan': '<:vegan:892967496502636605>',
+    'Vegetarian': '<:vegaterian:892967496771047485>'
+}
+
+MEAL_TIMES: 'dict[str, dict[str, str]]' = {
+    'NEW VASSAR': {
+        'PICK 4': '7:00 AM - 9:30 AM',
+        'BRUNCH': '9:30 AM - 2:30 PM',
+        'DINNER': '5:00 PM - 8:30 PM'
+    },
+    'MASEEH': {
+        'BREAKFAST': '8:00 AM - 11:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
+        'LUNCH': '11:00 AM - 3:00 PM',
+        'DINNER': '5:00 PM - 9:00 PM',
+        'LATE-NIGHT': '10:00 PM - 1:00 AM'
+    },
+    'MCCORMICK': {
+        'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
+        'DINNER': '5:00 PM - 8:00 PM',
+    },
+    'BAKER': {
+        'BREAKFAST': '7:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
+        'DINNER': '5:30 PM - 8:30 PM',
+    },
+    'NEXT': {
+        'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
+        'DINNER': '5:30 PM - 8:30 PM',
+    },
+    'SIMMONS': {
+        'BREAKFAST': '8:00 AM - 10:00 AM',
+        'BRUNCH': '10:00 AM - 1:00 PM',
+        'DINNER': '5:00 PM - 8:00 PM',
+        'LATE-NIGHT': '10:00 PM - 1:00 AM'
+    },
 }
 
 DORM_ALIASES: 'dict[str, re.Pattern]' = {
-    'Baker': re.compile(r'baker( house)?', re.IGNORECASE),
-    'Maseeh': re.compile(r'(howard)|(.*mas+e+h.*)', re.IGNORECASE),
-    'McCormick': re.compile(r'mc+(ormick)?', re.IGNORECASE),
-    'New Vassar': re.compile(r'(new vassar)|(west garage)|(nv)|(wg)', re.IGNORECASE),
-    'Next': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
-    'Simmons': re.compile(r'(simmons)|(sponge)|(🧽)|(best( house)?)', re.IGNORECASE),
+    'BAKER': re.compile(r'baker( house)?', re.IGNORECASE),
+    'MASEEH': re.compile(r'(howard)|(.*mas+e+h.*)', re.IGNORECASE),
+    'MCCORMICK': re.compile(r'mc+(ormick)?', re.IGNORECASE),
+    'NEW VASSAR': re.compile(r'(new vassar)|(west garage)|(nv)|(wg)', re.IGNORECASE),
+    'NEXT': re.compile(r'(next)|(worst)( house)?', re.IGNORECASE),
+    'SIMMONS': re.compile(r'(simmons)|(sponge)|(🧽)|(best( house)?)', re.IGNORECASE),
 }
 
 
-# For New Vassar only
 class MenuItem:
     """A menu item"""
 
@@ -49,7 +84,7 @@ class MenuItem:
             'button', {'class': 'site-panel__daypart-item-title'}).get_text().strip()
 
         try:
-            tags = list(map(lambda x: TAG_EMOJIS[x['alt'].split(':')[0].lower()], html_element.find(
+            tags = list(map(lambda x: TAG_EMOJIS[x['alt'].split(':')[0]], html_element.find(
                 'span', {'class': 'site-panel__daypart-item-cor-icons'}).find_all('img')))
         except:
             tags = []
@@ -64,13 +99,18 @@ class GetMenu(Cog):
         self.bot = bot
         self.session = session
 
-    # New Vassar being the special child again...
-    async def get_all_menus(self, meal: str) -> 'list[MenuItem]':
+    async def get_all_menus(self, meal: str, day: str) -> 'dict[str, MenuItem]':
         """Fetches all the menus for the requested meal"""
         meal = meal.lower()
-        menu = []
+        dorm_menus = {}
 
-        async with self.session.get(f'https://mit.cafebonappetit.com/cafe') as resp:
+        if day == 'today':
+            day = str(date.today())
+        elif day == 'tomorrow':
+            day = str(date.today() + timedelta(days=1))
+        day = day.replace('/', '-')
+
+        async with self.session.get(f'https://mit.cafebonappetit.com/cafe/{day}') as resp:
             soup = BeautifulSoup(await resp.text(), 'html.parser')
             raw_menu = soup.find('section', {'id': meal.replace(' ', '-')}).find('div', {'class': 'c-tab__content--active'}).find(
                 'div', {'class': 'c-tab__content-inner site-panel__daypart-tab-content-inner'}).children
@@ -80,80 +120,42 @@ class GetMenu(Cog):
                 if i.name == 'div' and i['class'] == ['station-title-inline-block']:
                     current_dorm = i.find(
                         'h3', {'class': 'site-panel__daypart-station-title'}).get_text().strip().upper()
-                    if current_dorm != 'NEW VASSAR':
-                        continue;
-                    current_dorm = current_dorm.title()
+                    # Maseeh's name is stupid...
+                    if current_dorm == 'THE HOWARD DINING HALL AT MASEEH':
+                        current_dorm = 'MASEEH'
+                    # Initialize the new dorm's menu
+                    dorm_menus[current_dorm] = []
                     for j in i.find_all('div', {'class': 'site-panel__daypart-item'}):
                         assert current_dorm is not None
-                        menu.append(MenuItem.parse(j))
+                        dorm_menus[current_dorm].append(MenuItem.parse(j))
                 elif i.name == 'div':
                     assert current_dorm is not None
-                    menu.append(MenuItem.parse(i))
+                    dorm_menus[current_dorm].append(MenuItem.parse(i))
 
-        return menu
+        return dorm_menus
 
     @command(aliases=['serving'])
-    async def menu(self, ctx: Context, dorm: str, meal: str):
+    async def menu(self, ctx: Context, dorm: str, meal: str, day: str = 'today'):
         """Gets the menu for a specific dorm and meal."""
-        for d in DORM_ALIASES:
-            if DORM_ALIASES[d].match(dorm):
-                if d == 'New Vassar':
-                    menu = await self.get_all_menus(meal)
+        try:
+            for d in DORM_ALIASES:
+                if DORM_ALIASES[d].match(dorm):
+                    menu = (await self.get_all_menus(meal, day))[d]
                     embed = Embed(
-                        title=f'{meal} at New Vassar'.upper(),
-                        description='Who knows when? Certainly not me'
+                        title=f'{meal} specials at {d}'.upper(),
+                        description=f'{MEAL_TIMES[d][meal.replace(" ", "-").upper()]}, {day.upper()}'
                     )
                     for i in menu:
                         embed.add_field(
-                            name=i.name.title(),
+                            name=i.name,
                             value=' '.join(i.tags) + '‎ ',  # Invisible space character
                             inline=True
                         )
                     await ctx.reply(embed=embed)
-                    return
-
-                async with self.session.get('https://m.mit.edu/apis/dining/venues/house') as resp:
-                    dorms = await resp.json()
-                    found_menu = list(map(lambda x: x['meals_by_day'][0]['meals'],
-                                          filter(lambda y: y['name'] == d, dorms)))
-                    if len(found_menu) == 0:
-                        await ctx.reply(f'{d} isn\'t open today')
-                        return
-                    found_meal = list(filter(lambda x: meal.lower() in x['name'].lower(),
-                                             found_menu[0]))
-                    if len(found_meal) == 0:
-                        await ctx.reply(f'{d} isn\'t serving {meal} today')
-                        return
-                    embed = Embed(
-                        title=f'{found_meal[0]["name"]} at {d}'.upper(),
-                        description=f'{found_meal[0]["start_time"]} to {found_meal[0]["end_time"]}'
-                    )
-                    for i in found_meal[0]['items']:
-                        embed.add_field(
-                            name=i['name'].title(),
-                            # Invisible space character
-                            value=' '.join(
-                                map(lambda x: TAG_EMOJIS[x], i['dietary_flags'])) + '‎ ',
-                            inline=True
-                        )
-                    await ctx.reply(embed=embed)
                     break
-        else:
-            await ctx.reply('You spelt it wrong, you donkey.')
-
-    @command(aliases=['opendorms'])
-    async def dormsopen(self, ctx: Context):
-        """Gets the open dorms"""
-        async with self.session.get('https://m.mit.edu/apis/dining/venues/house') as resp:
-            dorms = await resp.json()
-            embed = Embed(title='DORMS OPEN TODAY')
-            for dorm in dorms:
-                meal_times = list(map(
-                    lambda m: f'{m["name"]} – {m["start_time"]} to {m["end_time"]}',
-                    dorm['meals_by_day'][0]['meals']))
-                embed.add_field(
-                    name=dorm['name'],
-                    value='\n'.join(meal_times),
-                    inline=False
-                )
-            await ctx.reply(embed=embed)
+            else:
+                await ctx.reply('You spelt it wrong, you donkey.')
+        except:
+            if day != 'today' and day != 'tomorrow':
+                day = f'on {day}'
+            await ctx.reply(f'"{dorm}" isn\'t serving "{meal}" {day}.')
